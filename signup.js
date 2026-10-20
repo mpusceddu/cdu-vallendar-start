@@ -5,9 +5,34 @@ const hint = document.querySelector('#form-hint');
 const result = document.querySelector('#signup-result');
 const actionPanel = document.querySelector('#signup-action');
 const actionButton = document.querySelector('#action-button');
-const openButton = document.querySelector('#signup-open');
 const action = new URL(location.href).searchParams.get('action');
-let actionToken = location.hash.slice(1), apiBase = '', config, widgetId;
+let actionToken = location.hash.slice(1), apiBase = '', config, widgetId, submitting = false;
+let challengeScript;
+function getChallenge() {
+  hint.textContent = 'Die Sicherheitsprüfung läuft. Falls eine Rückfrage erscheint, bestätigen Sie diese bitte unten.';
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Die Sicherheitsprüfung hat zu lange gedauert. Bitte erneut versuchen.')), 120000);
+    const fail = () => { clearTimeout(timer); reject(new Error('Die Sicherheitsprüfung konnte nicht abgeschlossen werden. Bitte erneut versuchen.')); };
+    const render = () => {
+      try {
+        if (widgetId !== undefined) window.turnstile.remove(widgetId);
+        widgetId = window.turnstile.render('#signup-security', {
+          sitekey: config.siteKey, action: 'startinfo', theme: 'light', size: 'flexible',
+          callback: token => { clearTimeout(timer); resolve(token); },
+          'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail
+        });
+      } catch { fail(); }
+    };
+    if (window.turnstile) return render();
+    challengeScript?.remove();
+    challengeScript = document.createElement('script');
+    challengeScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    challengeScript.async = true;
+    challengeScript.onload = render;
+    challengeScript.onerror = fail;
+    document.head.append(challengeScript);
+  });
+}
 function message(text, error = false) {
   result.textContent = text;
   result.hidden = false;
@@ -48,11 +73,11 @@ actionButton.addEventListener('click', async () => {
 });
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (!config?.signupOpen || !form.reportValidity()) return;
-  const turnstile = window.turnstile?.getResponse(widgetId);
-  if (!turnstile) return message('Bitte die Sicherheitsprüfung abschließen.', true);
+  if (submitting || !config?.signupOpen || !form.reportValidity()) return;
+  submitting = true;
   fields.disabled = true;
   try {
+    const turnstile = await getChallenge();
     const response = await post('/api/subscribe', {
       email: form.elements.email.value, consent: form.elements.consent.checked,
       consentVersion: config.consentVersion, website: form.elements.website.value, turnstile
@@ -65,7 +90,8 @@ form.addEventListener('submit', async event => {
       : error.message, true);
   } finally {
     fields.disabled = false;
-    window.turnstile?.reset(widgetId);
+    submitting = false;
+    hint.textContent = 'Bitte bestätigen Sie Ihre Anmeldung über den Link in Ihrer E-Mail. Ohne Bestätigung wird keine Startnachricht versendet.';
   }
 });
 async function init() {
@@ -96,25 +122,8 @@ async function init() {
     document.querySelector('#signup-privacy-note').hidden = false;
     document.querySelector('#preview-privacy-note').hidden = true;
     document.querySelector('#form-description').textContent = 'Melden Sie sich für eine einmalige E-Mail zum Start an. Anschließend bestätigen Sie Ihre Adresse per Link in der Bestätigungsmail.';
-    hint.textContent = 'Mit „Anmeldung öffnen“ laden Sie den Bot-Schutz von Cloudflare. Dabei werden technische Verbindungsdaten verarbeitet. Einzelheiten stehen in den Datenschutzhinweisen unten.';
-    openButton.hidden = false;
-    openButton.disabled = false;
-    openButton.addEventListener('click', () => {
-    openButton.hidden = true;
-    hint.textContent = 'Die Sicherheitsprüfung wird geladen …';
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.async = true;
-    script.onerror = () => { hint.textContent = 'Die Sicherheitsprüfung konnte nicht geladen werden. Bitte später erneut versuchen.'; };
-    script.onload = () => {
-        widgetId = window.turnstile.render('#signup-security', {
-          sitekey: config.siteKey, action: 'startinfo', theme: 'light', size: 'flexible'
-        });
-        fields.disabled = false;
-        hint.textContent = 'Bitte bestätigen Sie nach der Anmeldung Ihre E-Mail-Adresse. Ohne Bestätigung wird keine Startnachricht versendet.';
-    };
-    document.head.append(script);
-    }, { once: true });
+    hint.textContent = 'Beim Absenden wird der Bot-Schutz von Cloudflare geladen. Dabei werden technische Verbindungsdaten verarbeitet. Einzelheiten stehen in den Datenschutzhinweisen unten.';
+    fields.disabled = false;
   } catch {
     hint.textContent = 'Die Anmeldung ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut.';
   }
