@@ -5,6 +5,7 @@ const hint = document.querySelector('#form-hint');
 const result = document.querySelector('#signup-result');
 const actionPanel = document.querySelector('#signup-action');
 const actionButton = document.querySelector('#action-button');
+const openButton = document.querySelector('#signup-open');
 const action = new URL(location.href).searchParams.get('action');
 let actionToken = location.hash.slice(1), apiBase = '', config, widgetId;
 function message(text, error = false) {
@@ -95,6 +96,11 @@ async function init() {
     document.querySelector('#signup-privacy-note').hidden = false;
     document.querySelector('#preview-privacy-note').hidden = true;
     document.querySelector('#form-description').textContent = 'Melden Sie sich für eine einmalige E-Mail zum Start an. Anschließend bestätigen Sie Ihre Adresse per Link in der Bestätigungsmail.';
+    hint.textContent = 'Mit „Anmeldung öffnen“ laden Sie den Bot-Schutz von Cloudflare. Dabei werden technische Verbindungsdaten verarbeitet. Einzelheiten stehen in den Datenschutzhinweisen unten.';
+    openButton.hidden = false;
+    openButton.disabled = false;
+    openButton.addEventListener('click', () => {
+    openButton.hidden = true;
     hint.textContent = 'Die Sicherheitsprüfung wird geladen …';
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -110,6 +116,7 @@ async function init() {
       });
     };
     document.head.append(script);
+    }, { once: true });
   } catch {
     hint.textContent = 'Die Anmeldung ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut.';
   }
