@@ -50,6 +50,7 @@ async function post(path, data) {
   return body;
 }
 if (action === 'confirm' || action === 'unsubscribe') {
+  document.querySelector('#preview-privacy-note').hidden = true;
   // Do not retain a personal action token in browser history.
   history.replaceState(null, '', `${location.pathname}${location.search}`);
   form.hidden = true;
