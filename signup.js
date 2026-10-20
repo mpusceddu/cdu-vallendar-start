@@ -107,13 +107,11 @@ async function init() {
     script.async = true;
     script.onerror = () => { hint.textContent = 'Die Sicherheitsprüfung konnte nicht geladen werden. Bitte später erneut versuchen.'; };
     script.onload = () => {
-      window.turnstile.ready(() => {
         widgetId = window.turnstile.render('#signup-security', {
           sitekey: config.siteKey, action: 'startinfo', theme: 'light', size: 'flexible'
         });
         fields.disabled = false;
         hint.textContent = 'Bitte bestätigen Sie nach der Anmeldung Ihre E-Mail-Adresse. Ohne Bestätigung wird keine Startnachricht versendet.';
-      });
     };
     document.head.append(script);
     }, { once: true });
