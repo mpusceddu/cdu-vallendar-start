@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>CDU in der Verbandsgemeinde Vallendar</title>
+  <rect width="64" height="64" rx="12" fill="#071f33"/>
+  <g fill="none" stroke="#fff" stroke-width="4.8" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M18 23H14C10 23 8 26 8 32S10 41 14 41H18"/>
+    <path d="M26 23V41H30C35 41 37 38 37 32S35 23 30 23Z"/>
+    <path d="M45 23V35C45 39 47 41 50.5 41S56 39 56 35V23"/>
+  </g>
+  <rect x="8" y="49" width="48" height="4" rx="2" fill="#70d7d3"/>
+</svg>
